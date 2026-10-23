@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Актуальные условия персонального тренировочного сопровождения в Такт Таймере">
+  <title>Сопровождение — Такт Таймер</title>
+  <style>
+    :root{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;background:#0c111b;color:#eaf1f3;line-height:1.5}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 60% -10%,#153d42 0%,#0c111b 55%);min-height:100vh}
+    main{max-width:930px;margin:0 auto;padding:40px 18px 70px}.eyebrow{color:#81ded3;letter-spacing:.09em;text-transform:uppercase;font-weight:700;font-size:.75rem}
+    h1{font-size:clamp(2rem,5vw,3.35rem);letter-spacing:-.03em;line-height:1.13;margin:8px 0 15px}h2{font-size:1.35rem;margin:0 0 5px}
+    p{color:#c2cdd3;margin:0 0 14px}.intro{max-width:670px;font-size:1.08rem;margin-bottom:29px}
+    .note{border:1px solid #30535b;background:#14252d;padding:15px 17px;border-radius:13px;margin:21px 0 28px}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    .card{background:#151f2c;border:1px solid #32414d;border-radius:17px;padding:22px 20px}
+    .num{font-size:.87rem;color:#a7bbc4;margin-top:3px}.price{font-size:1.65rem;font-weight:750;letter-spacing:-.025em;color:#95ead6;margin:5px 0 13px}
+    .mode{display:flex;align-items:center;justify-content:space-between;gap:12px;border-top:1px solid #34424d;padding-top:10px;margin-top:10px}
+    .mode span{color:#d2e0e5}.mode strong{color:#9cfff0;white-space:nowrap;font-size:1.1rem}
+    .status{color:#efceb0}.status.ready{color:#8aeccf}small{color:#afbdc4}footer{margin-top:35px;padding-top:20px;border-top:1px solid #32414d;color:#aebcc4;font-size:.91rem}
+    .btn{display:inline-block;background:#7ee0d0;color:#0c2329;font-weight:700;border-radius:11px;border:0;padding:11px 16px;cursor:pointer;margin:3px 0 15px}
+    @media(max-width:650px){.grid{grid-template-columns:1fr}main{padding-top:25px}.card{padding:18px 17px}}
+  </style>
+</head>
+<body>
+  <main>
+    <div class="eyebrow">Такт Таймер · Персональное сопровождение</div>
+    <h1>Ваше дело — тренироваться.<br>Наше — продумывать каждую тренировку.</h1>
+    <p class="intro">Выберите подходящую частоту и формат сопровождения. Цена относится к одному согласованному календарному месяцу с четырьмя тренировочными неделями.</p>
+    <div class="note" role="status" aria-live="polite"><div id="status" class="status">Проверяем публикацию цен…</div><small id="edition"></small></div>
+    <div id="cards" class="grid" aria-live="polite"></div>
+    <footer>
+      <p><b>БЛОК</b> — четыре недельных блока; в каждом столько тренировок, сколько предусмотрено тарифом.</p>
+      <p><b>ПУЛЬС</b> — занятия выдаются по одному после анализа предыдущих результатов.</p>
+      <p>Анкета бесплатна и не обязывает к покупке. Стоимость, сроки и состав услуги подтверждаются тренером до оплаты. Обычные функции приложения остаются бесплатными.</p>
+      <p>Обновление публичного прайса не изменяет цену уже оплаченного периода.</p>
+    </footer>
+  </main>
+  <script>
+    'use strict';
+    const levels=[['LEGIONER','Легионер',2],['SPARTANETS','Спартанец',3],['GLADIATOR','Гладиатор',4],['ATLANT','Атлант',5]];
+    const status=document.getElementById('status'), edition=document.getElementById('edition'), cards=document.getElementById('cards');
+    const text=(tag,value,cls)=>{const e=document.createElement(tag);e.textContent=value;if(cls)e.className=cls;return e;};
+    const format=new Intl.NumberFormat('ru-RU',{style:'currency',currency:'RUB',maximumFractionDigits:0});
+    function validDate(s){return typeof s==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s+'T00:00:00Z'))&&new Date(s+'T00:00:00Z').toISOString().slice(0,10)===s;}
+    function verify(d){
+      if(d?.published!==true||typeof d.version!=='string'||!/^[A-Za-z0-9._-]{1,64}$/.test(d.version)||
+         ![d.updatedAt,d.validFrom,d.validUntil].every(validDate))throw Error('Прайс не опубликован');
+      const today=new Date().toISOString().slice(0,10);
+      if(d.updatedAt>today||d.validFrom>today||d.validUntil<today||d.validUntil<d.validFrom)throw Error('Прайс пока не действует');
+      if(!Array.isArray(d.prices)||d.prices.length!==8)throw Error('Прайс неполный');
+      const prices=new Map();for(const p of d.prices){
+        const key=p.tariffId+':'+p.supportMode;
+        if(!levels.some(l=>l[0]===p.tariffId)||!['BLOCK','PULSE'].includes(p.supportMode)||
+           prices.has(key)||!Number.isInteger(p.priceRub)||p.priceRub<1||p.priceRub>1000000)throw Error('Неверные данные прайса');
+        prices.set(key,p.priceRub);
+      }
+      if(prices.size!==8)throw Error('Не все предложения представлены');
+      return prices;
+    }
+    function render(data,prices){
+      cards.replaceChildren();for(const [id,name,weekly] of levels){
+        const card=text('article','','card');card.append(text('h2',name),text('p',weekly+' тренировки в неделю · '+weekly*4+' за четыре недели','num'));
+        for(const [mode,label] of [['BLOCK','БЛОК'],['PULSE','ПУЛЬС']]){
+          const row=text('div','','mode');row.append(text('span',label),text('strong',format.format(prices.get(id+':'+mode))));card.append(row);
+        }cards.append(card);
+      }
+      status.textContent='Актуальные цены опубликованы';status.classList.add('ready');
+      edition.textContent=`Прайс ${data.version} · обновлён ${data.updatedAt} · действует до ${data.validUntil}`;
+    }
+    fetch('./prices.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Файл недоступен');return r.json();})
+      .then(d=>render(d,verify(d))).catch(()=>{status.textContent='Стоимость сопровождения уточняется перед оформлением заказа.';edition.textContent='Сейчас нельзя подтвердить актуальность цен. Анкета бесплатна; обратитесь к тренеру.';cards.replaceChildren();});
+  </script>
+</body>
+</html>

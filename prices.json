@@ -1,0 +1,17 @@
+{
+  "published": false,
+  "version": "draft-2026-10-23",
+  "updatedAt": "2026-10-23",
+  "validFrom": "2026-10-23",
+  "validUntil": "2026-11-23",
+  "prices": [
+    { "tariffId": "LEGIONER", "supportMode": "BLOCK", "priceRub": 1500 },
+    { "tariffId": "LEGIONER", "supportMode": "PULSE", "priceRub": 2500 },
+    { "tariffId": "SPARTANETS", "supportMode": "BLOCK", "priceRub": 2000 },
+    { "tariffId": "SPARTANETS", "supportMode": "PULSE", "priceRub": 3500 },
+    { "tariffId": "GLADIATOR", "supportMode": "BLOCK", "priceRub": 2500 },
+    { "tariffId": "GLADIATOR", "supportMode": "PULSE", "priceRub": 4500 },
+    { "tariffId": "ATLANT", "supportMode": "BLOCK", "priceRub": 3000 },
+    { "tariffId": "ATLANT", "supportMode": "PULSE", "priceRub": 5500 }
+  ]
+}
